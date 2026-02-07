@@ -149,9 +149,9 @@ export const styles = `
 
   button {
     width: 100%;
-    padding: 16px;
+    padding: 15px 16px;
     background: var(--primary-gradient);
-    border: none;
+    border: 1px solid transparent;
     border-radius: 12px;
     color: white;
     font-size: 16px;
@@ -278,6 +278,11 @@ export const styles = `
     display: grid;
     gap: 16px;
     grid-template-columns: 1fr 1fr;
+    margin-top: 8px;
+  }
+  
+  .authorize-actions button {
+    margin-top: 0;
   }
 
   .btn-deny {
@@ -394,7 +399,6 @@ export const styles = `
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: none;
-    margin-top: 0;
     color: var(--text-muted);
   }
   
