@@ -282,30 +282,35 @@ app.post("/oauth/authorize", async (c) => {
     return c.redirect("/login");
   }
 
-  const formData = await c.req.formData();
-  const action = formData.get("action")?.toString();
-  const clientId = formData.get("client_id")?.toString();
-  const redirectUri = formData.get("redirect_uri")?.toString();
-  const codeChallenge = formData.get("code_challenge")?.toString();
-  const codeChallengeMethod = formData.get("code_challenge_method")?.toString() || "S256";
+  try {
+    const formData = await c.req.formData();
+    const action = formData.get("action")?.toString();
+    const clientId = formData.get("client_id")?.toString();
+    const redirectUri = formData.get("redirect_uri")?.toString();
+    const codeChallenge = formData.get("code_challenge")?.toString() || null;
+    const codeChallengeMethod = formData.get("code_challenge_method")?.toString() || null;
 
-  if (action === "deny") {
-    return c.redirect(`${redirectUri}?error=access_denied`);
+    if (action === "deny") {
+      return c.redirect(`${redirectUri}?error=access_denied`);
+    }
+
+    if (!clientId || !redirectUri) {
+      return c.text("Invalid request", 400);
+    }
+
+    const code = generateId(32);
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Store authorization code with PKCE challenge
+    await c.env.DB.prepare(
+      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod).run();
+
+    return c.redirect(`${redirectUri}?code=${code}`);
+  } catch (error) {
+    console.error("OAuth authorize error:", error);
+    return c.text("Internal Server Error", 500);
   }
-
-  if (!clientId || !redirectUri) {
-    return c.text("Invalid request", 400);
-  }
-
-  const code = generateId(32);
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  // Store authorization code with PKCE challenge
-  await c.env.DB.prepare(
-    "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod).run();
-
-  return c.redirect(`${redirectUri}?code=${code}`);
 });
 
 // OAuth token endpoint
