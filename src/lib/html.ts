@@ -302,6 +302,81 @@ export function renderPage(title: string, content: string): string {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>${styles}</style>
+  <script>
+    // Client-side encryption utilities
+    async function encryptPassword(password) {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+      const timestamp = Date.now().toString();
+      const combined = password + '|' + saltHex + '|' + timestamp;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(combined);
+      return btoa(String.fromCharCode(...data));
+    }
+
+    function generateNonce() {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function getFingerprint() {
+      const data = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset()
+      ].join('|');
+      let hash = 0;
+      for (let i = 0; i < data.length; i++) {
+        const char = data.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return Math.abs(hash).toString(36);
+    }
+
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      const form = event.target;
+      const passwordInput = form.querySelector('input[name="password"]');
+      const originalPassword = passwordInput.value;
+
+      // Encrypt password
+      const encryptedPassword = await encryptPassword(originalPassword);
+
+      // Add hidden fields
+      const nonce = generateNonce();
+      const fingerprint = getFingerprint();
+      const timestamp = Date.now();
+
+      // Create hidden inputs
+      const fields = {
+        'p': encryptedPassword,
+        'nonce': nonce,
+        'fp': fingerprint,
+        'ts': timestamp
+      };
+
+      for (const [key, value] of Object.entries(fields)) {
+        let input = form.querySelector('input[name="' + key + '"]');
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          form.appendChild(input);
+        }
+        input.value = value;
+      }
+
+      // Clear original password
+      passwordInput.value = '';
+      passwordInput.removeAttribute('name');
+
+      // Submit form
+      form.submit();
+    }
+  </script>
 </head>
 <body>
   <div class="container">
@@ -317,7 +392,7 @@ export function renderPage(title: string, content: string): string {
 export function loginForm(error?: string): string {
   return renderPage("登录", `
     ${error ? `<div class="error">⚠️ ${error}</div>` : ""}
-    <form method="POST" action="/login">
+    <form method="POST" action="/login" onsubmit="handleFormSubmit(event)">
       <div class="form-group">
         <label for="username">用户名</label>
         <input type="text" id="username" name="username" required placeholder="请输入用户名" autocomplete="username">
@@ -337,7 +412,7 @@ export function loginForm(error?: string): string {
 export function registerForm(error?: string): string {
   return renderPage("注册", `
     ${error ? `<div class="error">⚠️ ${error}</div>` : ""}
-    <form method="POST" action="/register">
+    <form method="POST" action="/register" onsubmit="handleFormSubmit(event)">
       <div class="form-group">
         <label for="username">用户名</label>
         <input type="text" id="username" name="username" required placeholder="设置用户名" autocomplete="username">

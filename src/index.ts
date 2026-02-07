@@ -2,13 +2,19 @@ import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { initializeLucia } from "./lib/auth";
 import { hashPassword, verifyPassword, generateId } from "./lib/password";
+import { decryptPassword, validateRequest } from "./lib/decrypt";
 import * as html from "./lib/html";
 
 type Bindings = {
   DB: D1Database;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+  user: any | null;
+  session: any | null;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Middleware to get current user
 app.use("*", async (c, next) => {
@@ -64,25 +70,36 @@ app.post("/login", async (c) => {
   const lucia = initializeLucia(c.env.DB);
   const formData = await c.req.formData();
   const username = formData.get("username")?.toString();
-  const password = formData.get("password")?.toString();
+  const encryptedPassword = formData.get("p")?.toString();
+  const nonce = formData.get("nonce")?.toString();
+  const fingerprint = formData.get("fp")?.toString();
+  const timestamp = formData.get("ts")?.toString();
 
-  if (!username || !password) {
-    return c.html(html.loginForm("ユーザー名とパスワードを入力してください"), 400);
+  if (!username || !encryptedPassword) {
+    return c.html(html.loginForm("用户名和密码不能为空"), 400);
+  }
+
+  // Validate request parameters
+  if (!validateRequest(nonce || null, fingerprint || null, timestamp || null)) {
+    return c.html(html.loginForm("请求参数无效"), 400);
   }
 
   try {
+    // Decrypt password
+    const password = decryptPassword(encryptedPassword);
+
     const result = await c.env.DB.prepare(
       "SELECT * FROM users WHERE username = ?"
     ).bind(username).first();
 
     if (!result) {
-      return c.html(html.loginForm("ユーザー名またはパスワードが正しくありません"), 400);
+      return c.html(html.loginForm("用户名或密码错误"), 400);
     }
 
     const validPassword = await verifyPassword(password, result.hashed_password as string);
 
     if (!validPassword) {
-      return c.html(html.loginForm("ユーザー名またはパスワードが正しくありません"), 400);
+      return c.html(html.loginForm("用户名或密码错误"), 400);
     }
 
     const session = await lucia.createSession(result.id as string, {});
@@ -92,7 +109,7 @@ app.post("/login", async (c) => {
     return c.redirect("/");
   } catch (error) {
     console.error("Login error:", error);
-    return c.html(html.loginForm("ログインに失敗しました"), 500);
+    return c.html(html.loginForm("登录失败，请重试"), 500);
   }
 });
 
@@ -112,24 +129,35 @@ app.post("/register", async (c) => {
   const formData = await c.req.formData();
   const username = formData.get("username")?.toString();
   const email = formData.get("email")?.toString();
-  const password = formData.get("password")?.toString();
+  const encryptedPassword = formData.get("p")?.toString();
   const displayName = formData.get("display_name")?.toString() || null;
+  const nonce = formData.get("nonce")?.toString();
+  const fingerprint = formData.get("fp")?.toString();
+  const timestamp = formData.get("ts")?.toString();
 
-  if (!username || !email || !password) {
-    return c.html(html.registerForm("すべての必須項目を入力してください"), 400);
+  if (!username || !email || !encryptedPassword) {
+    return c.html(html.registerForm("所有必填项不能为空"), 400);
   }
 
-  if (password.length < 8) {
-    return c.html(html.registerForm("パスワードは8文字以上である必要があります"), 400);
+  // Validate request parameters
+  if (!validateRequest(nonce || null, fingerprint || null, timestamp || null)) {
+    return c.html(html.registerForm("请求参数无效"), 400);
   }
 
   try {
+    // Decrypt password
+    const password = decryptPassword(encryptedPassword);
+
+    if (password.length < 8) {
+      return c.html(html.registerForm("密码长度至少为 8 个字符"), 400);
+    }
+
     const existingUser = await c.env.DB.prepare(
       "SELECT id FROM users WHERE username = ? OR email = ?"
     ).bind(username, email).first();
 
     if (existingUser) {
-      return c.html(html.registerForm("ユーザー名またはメールアドレスは既に使用されています"), 400);
+      return c.html(html.registerForm("用户名或邮箱已被使用"), 400);
     }
 
     const userId = generateId();
@@ -147,7 +175,7 @@ app.post("/register", async (c) => {
     return c.redirect("/");
   } catch (error) {
     console.error("Registration error:", error);
-    return c.html(html.registerForm("登録に失敗しました"), 500);
+    return c.html(html.registerForm("注册失败，请重试"), 500);
   }
 });
 

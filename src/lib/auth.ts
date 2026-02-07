@@ -1,5 +1,5 @@
 import { Lucia, TimeSpan } from "lucia";
-import type { Adapter, DatabaseSession, DatabaseUser } from "lucia";
+import type { Adapter, DatabaseSession, DatabaseUser as LuciaDatabaseUser } from "lucia";
 import type { D1Database } from "@cloudflare/workers-types";
 
 // Custom D1 Adapter for Lucia
@@ -20,7 +20,7 @@ class D1Adapter implements Adapter {
 
   async getSessionAndUser(
     sessionId: string
-  ): Promise<[session: DatabaseSession | null, user: DatabaseUser | null]> {
+  ): Promise<[session: DatabaseSession | null, user: LuciaDatabaseUser | null]> {
     const result = await this.db
       .prepare(
         `SELECT sessions.*, users.* FROM sessions
@@ -41,7 +41,7 @@ class D1Adapter implements Adapter {
       attributes: {}
     };
 
-    const user: DatabaseUser = {
+    const user: LuciaDatabaseUser = {
       id: result.user_id as string,
       attributes: {
         username: result.username as string,
