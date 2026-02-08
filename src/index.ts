@@ -268,10 +268,14 @@ app.post("/oauth/token", async (c) => {
   const lucia = initializeLucia(c.env.DB);
   const session = await lucia.createSession(authCode.user_id as string, {});
 
+  // OAuth 2.1: Token responses must include Cache-Control: no-store
   return c.json({
     access_token: session.id,
     token_type: "Bearer",
     expires_in: 3600
+  }, 200, {
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
   });
 });
 
@@ -291,11 +295,15 @@ app.get("/oauth/userinfo", async (c) => {
     return c.json({ error: "invalid_token" }, 401);
   }
 
+  // OAuth 2.1: Responses with sensitive data must include Cache-Control: no-store
   return c.json({
     id: user.id,
     username: user.username,
     email: user.email,
     display_name: user.displayName
+  }, 200, {
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
   });
 });
 

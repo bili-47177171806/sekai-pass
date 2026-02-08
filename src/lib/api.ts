@@ -119,6 +119,9 @@ apiRouter.post("/auth/login", async (c) => {
         email: result.email,
         display_name: result.display_name
       }
+    }, 200, {
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -189,6 +192,9 @@ apiRouter.post("/auth/register", async (c) => {
         email,
         display_name
       }
+    }, 200, {
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -209,6 +215,9 @@ apiRouter.get("/auth/me", async (c) => {
     username: user.username,
     email: user.email,
     display_name: user.displayName
+  }, 200, {
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
   });
 });
 
