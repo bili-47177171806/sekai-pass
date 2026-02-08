@@ -5,6 +5,13 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"  # 替换为实际值
+
+# Static assets configuration
+[assets]
+directory = "public"
+binding = "ASSETS"
+not_found_handling = "404-page"
 
 # 配置说明：
 # 1. 复制此文件为 wrangler.toml
