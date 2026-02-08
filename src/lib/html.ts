@@ -86,28 +86,19 @@ export const styles = `
 
   .logo {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
   }
 
-  .logo h1 {
-    font-size: 36px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #a55eea 0%, #4b7bec 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 8px;
-    letter-spacing: 1px;
-    text-shadow: 0 4px 12px rgba(136, 84, 208, 0.3);
+  .logo img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: block; /* Removes bottom space */
+    margin: 0 auto; /* Centers the image */
   }
 
-  .logo p {
-    font-size: 14px;
-    color: var(--text-muted);
-    font-weight: 400;
-    letter-spacing: 1.5px;
-    opacity: 0.8;
-    text-transform: uppercase;
+  /* .logo h1 removed for logo image */
   }
 
   .form-group {
@@ -524,7 +515,7 @@ export function renderPage(title: string, content: string): string {
 <body>
   <div class="container">
     <div class="logo">
-      <h1>SEKAI Pass</h1>
+      <img src="/logo.png" alt="SEKAI Pass" width="300" />
     </div>
     ${content}
   </div>
