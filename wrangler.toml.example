@@ -32,5 +32,5 @@ preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"  # Run: wrangler kv:namespace create
 
 # Cron trigger for key rotation (weekly on Sunday at midnight)
 [triggers]
-crons = ["0 0 * * 0"]
+crons = ["0 0 * * SUN"]
 
