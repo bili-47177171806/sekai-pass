@@ -6,13 +6,20 @@ import { generateId } from "./lib/password";
 import { verifyPKCE, validateCodeChallenge, validateCodeVerifier } from "./lib/pkce";
 import { verifyTurnstile } from "./lib/turnstile";
 import { issueTokens, validateAccessToken, refreshAccessToken, revokeRefreshToken } from "./lib/tokens";
+import { validateScopeParameter, formatScopes, filterUserData, SCOPES, hasScopes } from "./lib/scope";
+import { isOIDCRequest } from "./lib/oidc-scope";
+import { generateIDToken } from "./lib/id-token";
+import { generateOIDCMetadata } from "./lib/oidc-discovery";
+import { getPublicKeys, checkAndRotateKeys } from "./lib/keys";
 import * as html from "./lib/html";
 import { apiRouter } from "./lib/api";
 
 type Bindings = {
   DB: D1Database;
+  KV: KVNamespace;
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;
+  KEY_ENCRYPTION_SECRET: string;
   ASSETS: Fetcher;
 };
 
@@ -39,6 +46,16 @@ app.use("/oauth/*", cors({
   allowHeaders: ["Content-Type", "Authorization"],
   exposeHeaders: ["Content-Length"],
   maxAge: 600,
+  credentials: false,
+}));
+
+// CORS middleware for .well-known endpoints (OIDC Discovery, JWKS)
+app.use("/.well-known/*", cors({
+  origin: "*",
+  allowMethods: ["GET", "OPTIONS"],
+  allowHeaders: ["Content-Type"],
+  exposeHeaders: ["Content-Length", "Cache-Control"],
+  maxAge: 3600,  // 1 hour cache for preflight
   credentials: false,
 }));
 
@@ -92,11 +109,28 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
     code_challenge_methods_supported: ["S256", "plain"],
     token_endpoint_auth_methods_supported: ["none"],
     revocation_endpoint_auth_methods_supported: ["none"],
+    scopes_supported: Object.values(SCOPES),
     service_documentation: `${baseUrl}/docs`,
     ui_locales_supported: ["zh-CN", "en-US"],
     // OAuth 2.1: PKCE is mandatory
     require_pushed_authorization_requests: false,
     require_request_uri_registration: false
+  });
+});
+
+// OpenID Connect Discovery Endpoint
+app.get("/.well-known/openid-configuration", async (c) => {
+  const baseUrl = new URL(c.req.url).origin;
+  return c.json(generateOIDCMetadata(baseUrl));
+});
+
+// JWKS (JSON Web Key Set) Endpoint
+app.get("/.well-known/jwks.json", async (c) => {
+  const publicKeys = await getPublicKeys(c.env.DB);
+  return c.json({
+    keys: publicKeys
+  }, 200, {
+    "Cache-Control": "public, max-age=3600"  // Cache for 1 hour
   });
 });
 
@@ -115,6 +149,8 @@ app.get("/oauth/authorize", async (c) => {
   const codeChallenge = c.req.query("code_challenge");
   const codeChallengeMethod = c.req.query("code_challenge_method") || "S256";
   const state = c.req.query("state");
+  const scopeParam = c.req.query("scope");
+  const nonce = c.req.query("nonce");
 
   if (!clientId || !redirectUri || responseType !== "code") {
     return c.text("Invalid request", 400);
@@ -128,6 +164,13 @@ app.get("/oauth/authorize", async (c) => {
   if (!validateCodeChallenge(codeChallenge, codeChallengeMethod)) {
     return c.text("Invalid code_challenge", 400);
   }
+
+  // Validate scope parameter
+  const scopeValidation = validateScopeParameter(scopeParam);
+  if (!scopeValidation.valid) {
+    return c.text(scopeValidation.error || "Invalid scope", 400);
+  }
+  const requestedScopes = scopeValidation.scopes;
 
   const app = await c.env.DB.prepare(
     "SELECT * FROM applications WHERE client_id = ?"
@@ -149,7 +192,9 @@ app.get("/oauth/authorize", async (c) => {
       redirect_uri: redirectUri,
       code_challenge: codeChallenge,
       code_challenge_method: codeChallengeMethod,
-      state: state
+      state: state,
+      scope: formatScopes(requestedScopes),
+      nonce: nonce
     },
     user
   ));
@@ -171,6 +216,8 @@ app.post("/oauth/authorize", async (c) => {
     const codeChallenge = formData.get("code_challenge")?.toString() || null;
     const codeChallengeMethod = formData.get("code_challenge_method")?.toString() || null;
     const state = formData.get("state")?.toString() || null;
+    const scopeParam = formData.get("scope")?.toString() || null;
+    const nonce = formData.get("nonce")?.toString() || null;
 
     if (action === "deny") {
       const errorUrl = new URL(redirectUri!);
@@ -185,12 +232,36 @@ app.post("/oauth/authorize", async (c) => {
       return c.text("Invalid request", 400);
     }
 
+    // Validate and parse scope
+    const scopeValidation = validateScopeParameter(scopeParam);
+    if (!scopeValidation.valid) {
+      return c.text(scopeValidation.error || "Invalid scope", 400);
+    }
+    const scope = formatScopes(scopeValidation.scopes);
+
     const code = generateId(32);
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const authTime = Date.now();
 
     await c.env.DB.prepare(
-      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod, state).run();
+      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method, state, scope) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod, state, scope).run();
+
+    // Store OIDC auth data if this is an OIDC request
+    if (isOIDCRequest(scope)) {
+      await c.env.DB.prepare(
+        "INSERT INTO oidc_auth_data (code, nonce, auth_time) VALUES (?, ?, ?)"
+      ).bind(code, nonce, authTime).run();
+
+      // Update user's last_auth_time (optional, ignore if column doesn't exist)
+      try {
+        await c.env.DB.prepare(
+          "UPDATE users SET last_auth_time = ? WHERE id = ?"
+        ).bind(authTime, user.id).run();
+      } catch (error) {
+        // Ignore error if last_auth_time column doesn't exist
+      }
+    }
 
     const successUrl = new URL(redirectUri);
     successUrl.searchParams.set("code", code);
@@ -273,12 +344,52 @@ app.post("/oauth/token", async (c) => {
       }, 400);
     }
 
+    // Check if this is an OIDC request and get auth data BEFORE deleting the code
+    const scope = authCode.scope as string || "profile";
+    let idToken: string | undefined;
+    let oidcData: any = null;
+
+    if (isOIDCRequest(scope)) {
+      // Get OIDC auth data before deleting auth_codes
+      oidcData = await c.env.DB.prepare(
+        "SELECT nonce, auth_time FROM oidc_auth_data WHERE code = ?"
+      ).bind(code).first();
+    }
+
     // Delete authorization code (one-time use)
+    // This will also cascade delete oidc_auth_data due to foreign key constraint
     await c.env.DB.prepare("DELETE FROM auth_codes WHERE code = ?").bind(code).run();
 
+    // Generate ID token if this is an OIDC request
+    if (isOIDCRequest(scope)) {
+      try {
+        // Get user data
+        const user = await c.env.DB.prepare(
+          "SELECT * FROM users WHERE id = ?"
+        ).bind(authCode.user_id).first();
+
+        if (user && oidcData) {
+          // Generate ID token
+          const baseUrl = new URL(c.req.url).origin;
+          idToken = await generateIDToken(
+            c.env.DB,
+            c.env.KV,
+            user,
+            clientId,
+            oidcData.nonce as string | null,
+            oidcData.auth_time as number,
+            scope,
+            baseUrl,
+            c.env.KEY_ENCRYPTION_SECRET
+          );
+        }
+      } catch (error) {
+        // Continue without ID token - don't fail the entire token request
+      }
+    }
+
     // Issue access token and refresh token
-    const scope = authCode.scope as string || "profile";
-    const tokens = await issueTokens(c.env.DB, authCode.user_id as string, clientId, scope);
+    const tokens = await issueTokens(c.env.DB, authCode.user_id as string, clientId, scope, idToken);
 
     // OAuth 2.1: Token responses must include Cache-Control: no-store
     return c.json(tokens, 200, {
@@ -311,7 +422,7 @@ app.post("/oauth/token", async (c) => {
   return c.json({ error: "unsupported_grant_type" }, 400);
 });
 
-// User info endpoint (OAuth 2.1)
+// User info endpoint (OAuth 2.1 / OIDC)
 app.get("/oauth/userinfo", async (c) => {
   const authorization = c.req.header("Authorization");
 
@@ -337,13 +448,24 @@ app.get("/oauth/userinfo", async (c) => {
     return c.json({ error: "invalid_token" }, 401);
   }
 
+  // Build OIDC-compliant response
+  const userInfo: any = {
+    sub: user.id  // OIDC requires 'sub' claim
+  };
+
+  // Add claims based on scope
+  if (hasScopes(tokenInfo.scope, [SCOPES.PROFILE])) {
+    userInfo.preferred_username = user.username;
+    userInfo.name = user.display_name;
+  }
+
+  if (hasScopes(tokenInfo.scope, [SCOPES.EMAIL])) {
+    userInfo.email = user.email;
+    userInfo.email_verified = true;  // Assuming verified
+  }
+
   // OAuth 2.1: Responses with sensitive data must include Cache-Control: no-store
-  return c.json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    display_name: user.display_name
-  }, 200, {
+  return c.json(userInfo, 200, {
     "Cache-Control": "no-store",
     "Pragma": "no-cache"
   });
@@ -414,4 +536,13 @@ app.get("*", async (c) => {
   return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
 });
 
-export default app;
+// Scheduled handler for key rotation
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
+    // Check and rotate keys weekly
+    if (event.cron === "0 0 * * 0") {
+      await checkAndRotateKeys(env.DB, env.KV, env.KEY_ENCRYPTION_SECRET);
+    }
+  }
+};

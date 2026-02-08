@@ -23,3 +23,14 @@ not_found_handling = "404-page"
 binding = "DB"
 database_name = "sekai_pass_db"
 database_id = "your-database-id-here"  # 替换为你的 database_id
+
+# KV namespace for signing key cache
+[[kv_namespaces]]
+binding = "KV"
+id = "YOUR_KV_NAMESPACE_ID"  # Run: wrangler kv:namespace create "OIDC_KEYS"
+preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"  # Run: wrangler kv:namespace create "OIDC_KEYS" --preview
+
+# Cron trigger for key rotation (weekly on Sunday at midnight)
+[triggers]
+crons = ["0 0 * * 0"]
+

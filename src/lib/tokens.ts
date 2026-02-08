@@ -10,6 +10,7 @@ export interface TokenPair {
   expires_in: number;
   refresh_token: string;
   scope: string;
+  id_token?: string; // Optional ID token for OIDC
 }
 
 export interface AccessTokenInfo {
@@ -26,7 +27,8 @@ export async function issueTokens(
   db: D1Database,
   userId: string,
   clientId: string,
-  scope: string = "profile"
+  scope: string = "profile",
+  idToken?: string
 ): Promise<TokenPair> {
   // Generate access token (1 hour)
   const accessToken = generateId(32);
@@ -44,13 +46,20 @@ export async function issueTokens(
     "INSERT INTO refresh_tokens (token, user_id, client_id, scope, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)"
   ).bind(refreshToken, userId, clientId, scope, refreshExpiresAt, Date.now()).run();
 
-  return {
+  const tokenPair: TokenPair = {
     access_token: accessToken,
     token_type: "Bearer",
     expires_in: 3600,
     refresh_token: refreshToken,
     scope: scope
   };
+
+  // Add ID token if provided
+  if (idToken) {
+    tokenPair.id_token = idToken;
+  }
+
+  return tokenPair;
 }
 
 /**

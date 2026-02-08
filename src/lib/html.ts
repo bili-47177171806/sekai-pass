@@ -474,26 +474,39 @@ export function dashboardPage(user: any): string {
 
 export function authorizePage(app: any, user: any): string {
   const initial = app.name ? app.name.charAt(0).toUpperCase() : 'A';
+
+  // Parse scopes to display
+  const scopes = app.scope ? app.scope.split(/\s+/) : ['profile'];
+  const scopeDescriptions: Record<string, string> = {
+    'openid': 'OpenID Connect 身份验证',
+    'profile': '访问您的基本信息（用户名、显示名称）',
+    'email': '访问您的电子邮件地址',
+    'applications': '管理您的 OAuth 应用程序',
+    'admin': '管理员权限'
+  };
+
   return renderPage("授权访问", `
     <div class="auth-header">
       <div class="app-icon">${initial}</div>
       <h2 class="auth-title">授权 ${app.name} 访问</h2>
       <p class="auth-subtitle">该应用希望通过 SEKAI Pass 登录</p>
       <div class="user-badge">
-        <span>当前身份</span> 
+        <span>当前身份</span>
         <strong>${user.username}</strong>
       </div>
     </div>
 
     <div class="permission-box">
-      <div class="permission-header">请求权限</div>
-      <div class="permission-item">
-        <svg class="permission-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-        <div>
-          <span class="permission-title">访问您的公开个人资料</span>
-          <div class="permission-desc">该应用可以查看您的用户名、头像及公开ID</div>
+      <div class="permission-header" style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-main);">请求权限</div>
+      ${scopes.map(scope => `
+        <div class="permission-item" style="display: flex; gap: 12px; margin-bottom: 12px; align-items: start;">
+          <svg class="permission-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; color: var(--primary-color); margin-top: 2px;"><path d="M20 6L9 17l-5-5"/></svg>
+          <div>
+            <span class="permission-title" style="display: block; font-weight: 500; margin-bottom: 4px;">${scope}</span>
+            <div class="permission-desc" style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">${scopeDescriptions[scope] || '未知权限'}</div>
+          </div>
         </div>
-      </div>
+      `).join('')}
     </div>
 
     <form method="POST" action="/oauth/authorize">
@@ -502,6 +515,8 @@ export function authorizePage(app: any, user: any): string {
       ${app.code_challenge ? `<input type="hidden" name="code_challenge" value="${app.code_challenge}">` : ''}
       ${app.code_challenge_method ? `<input type="hidden" name="code_challenge_method" value="${app.code_challenge_method}">` : ''}
       ${app.state ? `<input type="hidden" name="state" value="${app.state}">` : ''}
+      ${app.scope ? `<input type="hidden" name="scope" value="${app.scope}">` : ''}
+      ${app.nonce ? `<input type="hidden" name="nonce" value="${app.nonce}">` : ''}
 
       <div class="authorize-actions">
         <button type="submit" name="action" value="allow">确认授权</button>
