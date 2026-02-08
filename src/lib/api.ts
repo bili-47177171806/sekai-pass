@@ -25,6 +25,19 @@ apiRouter.get("/config", async (c) => {
   });
 });
 
+// OAuth configuration endpoint
+apiRouter.get("/oauth/config", async (c) => {
+  const baseUrl = new URL(c.req.url).origin;
+
+  return c.json({
+    authorization_endpoint: `${baseUrl}/oauth/authorize`,
+    token_endpoint: `${baseUrl}/oauth/token`,
+    userinfo_endpoint: `${baseUrl}/oauth/userinfo`,
+    pkce_supported: true,
+    code_challenge_methods: ["S256", "plain"]
+  });
+});
+
 // Middleware to validate session from Bearer token
 apiRouter.use("*", async (c, next) => {
   const authorization = c.req.header("Authorization");

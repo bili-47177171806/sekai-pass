@@ -76,6 +76,24 @@ app.use("/oauth/*", async (c, next) => {
 // Traditional OAuth 2.0 Endpoints (保留用于第三方接入)
 // ============================================
 
+// OAuth Discovery Endpoint (RFC 8414)
+app.get("/.well-known/oauth-authorization-server", async (c) => {
+  const baseUrl = new URL(c.req.url).origin;
+
+  return c.json({
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/oauth/authorize`,
+    token_endpoint: `${baseUrl}/oauth/token`,
+    userinfo_endpoint: `${baseUrl}/oauth/userinfo`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code"],
+    code_challenge_methods_supported: ["S256", "plain"],
+    token_endpoint_auth_methods_supported: ["client_secret_post", "none"],
+    service_documentation: `${baseUrl}/docs`,
+    ui_locales_supported: ["zh-CN", "en-US"]
+  });
+});
+
 // OAuth authorization endpoint (traditional flow with HTML)
 app.get("/oauth/authorize", async (c) => {
   const user = c.get("user");
