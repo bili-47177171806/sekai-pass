@@ -263,7 +263,7 @@ apiRouter.post("/oauth/authorize", async (c) => {
 
   try {
     const body = await c.req.json();
-    const { client_id, redirect_uri, code_challenge, code_challenge_method, action } = body;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, action, state } = body;
 
     if (action === "deny") {
       return c.json({ error: "access_denied" }, 403);
@@ -277,12 +277,13 @@ apiRouter.post("/oauth/authorize", async (c) => {
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await c.env.DB.prepare(
-      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).bind(code, user.id, client_id, redirect_uri, expiresAt, code_challenge || null, code_challenge_method || null).run();
+      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(code, user.id, client_id, redirect_uri, expiresAt, code_challenge || null, code_challenge_method || null, state || null).run();
 
     return c.json({
       success: true,
-      code
+      code,
+      state: state || undefined
     });
   } catch (error) {
     console.error("OAuth authorize error:", error);

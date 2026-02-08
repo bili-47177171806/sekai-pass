@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS auth_codes (
     expires_at INTEGER NOT NULL,
     code_challenge TEXT,
     code_challenge_method TEXT DEFAULT 'S256',
+    state TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

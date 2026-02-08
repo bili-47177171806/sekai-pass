@@ -501,6 +501,7 @@ export function authorizePage(app: any, user: any): string {
       <input type="hidden" name="redirect_uri" value="${app.redirect_uri}">
       ${app.code_challenge ? `<input type="hidden" name="code_challenge" value="${app.code_challenge}">` : ''}
       ${app.code_challenge_method ? `<input type="hidden" name="code_challenge_method" value="${app.code_challenge_method}">` : ''}
+      ${app.state ? `<input type="hidden" name="state" value="${app.state}">` : ''}
 
       <div class="authorize-actions">
         <button type="submit" name="action" value="allow">确认授权</button>

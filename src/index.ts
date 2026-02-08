@@ -108,6 +108,7 @@ app.get("/oauth/authorize", async (c) => {
   const responseType = c.req.query("response_type");
   const codeChallenge = c.req.query("code_challenge");
   const codeChallengeMethod = c.req.query("code_challenge_method") || "S256";
+  const state = c.req.query("state");
 
   if (!clientId || !redirectUri || responseType !== "code") {
     return c.text("Invalid request", 400);
@@ -137,7 +138,8 @@ app.get("/oauth/authorize", async (c) => {
       client_id: clientId,
       redirect_uri: redirectUri,
       code_challenge: codeChallenge,
-      code_challenge_method: codeChallengeMethod
+      code_challenge_method: codeChallengeMethod,
+      state: state
     },
     user
   ));
@@ -158,9 +160,15 @@ app.post("/oauth/authorize", async (c) => {
     const redirectUri = formData.get("redirect_uri")?.toString();
     const codeChallenge = formData.get("code_challenge")?.toString() || null;
     const codeChallengeMethod = formData.get("code_challenge_method")?.toString() || null;
+    const state = formData.get("state")?.toString() || null;
 
     if (action === "deny") {
-      return c.redirect(`${redirectUri}?error=access_denied`);
+      const errorUrl = new URL(redirectUri!);
+      errorUrl.searchParams.set("error", "access_denied");
+      if (state) {
+        errorUrl.searchParams.set("state", state);
+      }
+      return c.redirect(errorUrl.toString());
     }
 
     if (!clientId || !redirectUri) {
@@ -171,10 +179,15 @@ app.post("/oauth/authorize", async (c) => {
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await c.env.DB.prepare(
-      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod).run();
+      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, code_challenge, code_challenge_method, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(code, user.id, clientId, redirectUri, expiresAt, codeChallenge, codeChallengeMethod, state).run();
 
-    return c.redirect(`${redirectUri}?code=${code}`);
+    const successUrl = new URL(redirectUri);
+    successUrl.searchParams.set("code", code);
+    if (state) {
+      successUrl.searchParams.set("state", state);
+    }
+    return c.redirect(successUrl.toString());
   } catch (error) {
     console.error("OAuth authorize error:", error);
     return c.text("Internal Server Error", 500);

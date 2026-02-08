@@ -11,7 +11,7 @@ export async function renderAuthorize(app, api, navigate) {
   api.setAuthToken(token);
 
   const params = getQueryParams();
-  const { client_id, redirect_uri, response_type, code_challenge, code_challenge_method } = params;
+  const { client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state } = params;
 
   if (!client_id || !redirect_uri || response_type !== 'code') {
     showError('Invalid request parameters');
@@ -85,13 +85,19 @@ export async function renderAuthorize(app, api, navigate) {
           redirect_uri,
           code_challenge,
           code_challenge_method,
+          state,
           action: 'allow'
         }, {
           headers: api.getAuthHeaders()
         });
 
         if (response.code) {
-          window.location.href = `${redirect_uri}?code=${response.code}`;
+          const redirectUrl = new URL(redirect_uri);
+          redirectUrl.searchParams.set('code', response.code);
+          if (state) {
+            redirectUrl.searchParams.set('state', state);
+          }
+          window.location.href = redirectUrl.toString();
         }
       } catch (error) {
         showError(error.message || '授权失败');
@@ -102,7 +108,12 @@ export async function renderAuthorize(app, api, navigate) {
     // Handle deny button
     const denyBtn = document.getElementById('deny-btn');
     denyBtn.addEventListener('click', () => {
-      window.location.href = `${redirect_uri}?error=access_denied`;
+      const errorUrl = new URL(redirect_uri);
+      errorUrl.searchParams.set('error', 'access_denied');
+      if (state) {
+        errorUrl.searchParams.set('state', state);
+      }
+      window.location.href = errorUrl.toString();
     });
 
   } catch (error) {
