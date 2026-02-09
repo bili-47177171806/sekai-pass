@@ -6,7 +6,7 @@
 
 ## ✨ 特性
 
-- 🔐 Lucia Auth 安全认证（Scrypt 密码哈希）
+- 🔐 Lucia Auth 安全认证（PBKDF2 密码哈希，100,000次迭代）
 - ⚡ Cloudflare Workers 边缘部署
 - 🗄️ D1 数据库数据持久化
 - 🔄 OAuth 2.1 授权码流程（强制 PKCE）
@@ -380,7 +380,7 @@ CREATE TABLE refresh_tokens (
 
 ## 🔒 安全特性
 
-- ✅ 密码使用 Scrypt 哈希（Oslo 库）
+- ✅ 密码使用 PBKDF2 哈希（100,000次迭代，SHA-256）
 - ✅ 会话由 Lucia Auth 管理（30天有效）
 - ✅ 生产环境强制 HTTPS
 - ✅ 安全 Cookie（SameSite=Lax）
