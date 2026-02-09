@@ -7,7 +7,7 @@
 ### 1. 🌐 纯前端 OIDC 演示 (oidc-demo.html)
 
 **特点:**
-- 纯 HTML + JavaScript，无需后端
+- 纯 HTML + JavaScript
 - 完整的 OIDC 授权码流程
 - PKCE 支持（S256）
 - Nonce 防重放攻击
@@ -43,7 +43,7 @@ const CONFIG = {
 - 自动 OIDC Discovery
 - Session 管理
 - ID Token 验证
-- 完整的用户信息展示
+- 用户信息展示
 
 **安装依赖:**
 ```bash
@@ -79,8 +79,8 @@ const CONFIG = {
 - 使用 `Authlib` 标准库
 - Flask 后端
 - 自动 OIDC Discovery
-- PKCE S256 强制保护
-- 美观的模板渲染
+- PKCE S256 保护
+- 模板渲染
 
 **安装依赖:**
 ```bash
@@ -125,7 +125,7 @@ open pkce-frontend.html
 
 在使用示例之前，需要在 SEKAI Pass 中注册 OAuth 应用。
 
-**注意**: 应用管理 UI 尚未实现，需要通过数据库直接注册应用。
+**注意**: 应用管理 UI 尚未实现，需要通过数据库注册应用。
 
 #### 使用 Wrangler CLI 注册应用
 
@@ -147,7 +147,7 @@ RETURNING client_id, client_secret;"
 npx wrangler d1 execute sekai_pass_db --remote --command "..."
 ```
 
-**记录凭据**: 保存输出的 `client_id` 和 `client_secret`，你需要在示例配置中使用它们。
+**记录凭据**: 保存输出的 `client_id` 和 `client_secret`，在示例配置中使用。
 
 ### 修改示例配置
 

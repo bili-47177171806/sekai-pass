@@ -1,6 +1,6 @@
 # OAuth/OIDC Discovery 端点
 
-SEKAI Pass 支持 OAuth 2.0 授权服务器元数据（RFC 8414）和 OpenID Connect Discovery，允许客户端自动发现配置。
+SEKAI Pass 支持 OAuth 2.0 授权服务器元数据（RFC 8414）和 OpenID Connect Discovery。客户端可以自动发现配置。
 
 ## Discovery 端点
 
@@ -89,7 +89,7 @@ curl https://id.nightcord.de5.net/.well-known/oauth-authorization-server | jq
 
 ### 3. 动态更新端点
 
-如果 SEKAI Pass 的端点 URL 发生变化，客户端可以自动适配，无需修改代码。
+如果 SEKAI Pass 的端点 URL 发生变化，客户端可以自动适配。
 
 ## 支持的功能
 

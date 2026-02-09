@@ -2,7 +2,7 @@
 
 现代化的 SSO (Single Sign-On) 单点登录系统
 
-使用 Cloudflare Workers 和 Lucia Auth 构建的现代化安全认证系统。
+使用 Cloudflare Workers 和 Lucia Auth 构建的安全认证系统。
 
 ## ✨ 特性
 
