@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![GitHub License](https://img.shields.io/github/license/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub stars](https://img.shields.io/github/stars/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub forks](https://img.shields.io/github/forks/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub issues](https://img.shields.io/github/issues/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub last commit](https://img.shields.io/github/last-commit/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub repo size](https://img.shields.io/github/repo-size/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-[![CodeFactor](https://img.shields.io/codefactor/grade/github/bili-47177171806/sekai-pass?style=flat-square&color=884499)](https://www.codefactor.io/repository/github/bili-47177171806/sekai-pass)
+![GitHub License](https://img.shields.io/github/license/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub stars](https://img.shields.io/github/stars/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub forks](https://img.shields.io/github/forks/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub issues](https://img.shields.io/github/issues/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub last commit](https://img.shields.io/github/last-commit/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub repo size](https://img.shields.io/github/repo-size/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+[![CodeFactor](https://img.shields.io/codefactor/grade/github/25-ji-code-de/sekai-pass?style=flat-square&color=884499)](https://www.codefactor.io/repository/github/25-ji-code-de/sekai-pass)
 
 English | [简体中文](./README.md)
 

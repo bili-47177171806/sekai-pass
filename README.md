@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![GitHub License](https://img.shields.io/github/license/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub stars](https://img.shields.io/github/stars/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub forks](https://img.shields.io/github/forks/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub issues](https://img.shields.io/github/issues/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub last commit](https://img.shields.io/github/last-commit/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-![GitHub repo size](https://img.shields.io/github/repo-size/bili-47177171806/sekai-pass?style=flat-square&color=884499)
-[![CodeFactor](https://img.shields.io/codefactor/grade/github/bili-47177171806/sekai-pass?style=flat-square&color=884499)](https://www.codefactor.io/repository/github/bili-47177171806/sekai-pass)
+![GitHub License](https://img.shields.io/github/license/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub stars](https://img.shields.io/github/stars/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub forks](https://img.shields.io/github/forks/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub issues](https://img.shields.io/github/issues/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub last commit](https://img.shields.io/github/last-commit/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+![GitHub repo size](https://img.shields.io/github/repo-size/25-ji-code-de/sekai-pass?style=flat-square&color=884499)
+[![CodeFactor](https://img.shields.io/codefactor/grade/github/25-ji-code-de/sekai-pass?style=flat-square&color=884499)](https://www.codefactor.io/repository/github/25-ji-code-de/sekai-pass)
 
 [English](./README.en.md) | 简体中文
 
@@ -488,17 +488,42 @@ MIT License
 
 详见 [LICENSE](LICENSE) 文件。
 
+## 🌐 SEKAI 生态
+
+本项目是 **SEKAI 生态**的一部分。
+
+查看完整的项目列表和架构：**[SEKAI 门户](https://sekai.nightcord.de5.net)**
+
 ## 🤝 贡献
 
-欢迎提交 Pull Request！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解贡献指南。
+欢迎贡献！我们非常感谢任何形式的贡献。
+
+在贡献之前，请阅读：
+- [贡献指南](./CONTRIBUTING.md)
+- [行为准则](./CODE_OF_CONDUCT.md)
+
+## 🔒 安全
+
+如果发现安全漏洞，请查看我们的 [安全政策](./SECURITY.md)。
 
 ## 📞 联系方式
 
-- GitHub Issues: [提交问题](https://github.com/bili-47177171806/sekai-pass/issues)
-- 哔哩哔哩: [@bili_47177171806](https://space.bilibili.com/3546904856103196)
+- **GitHub Issues**: [https://github.com/25-ji-code-de/sekai-pass/issues](https://github.com/25-ji-code-de/sekai-pass/issues)
+- **项目主页**: [https://id.nightcord.de5.net](https://id.nightcord.de5.net)
+- **哔哩哔哩**: [@bili_47177171806](https://space.bilibili.com/3546904856103196)
 
 ## ⭐ Star History
 
 如果这个项目对你有帮助，请给我们一个 Star！
 
-[![Star History Chart](https://api.star-history.com/svg?repos=bili-47177171806/sekai-pass&type=Date)](https://star-history.com/#bili-47177171806/sekai-pass&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=25-ji-code-de/sekai-pass&type=Date)](https://star-history.com/#25-ji-code-de/sekai-pass&Date)
+
+---
+
+<div align="center">
+
+**[SEKAI 生态](https://sekai.nightcord.de5.net)** 的一部分
+
+Made with 💜 by the [25-ji-code-de](https://github.com/25-ji-code-de) team
+
+</div>

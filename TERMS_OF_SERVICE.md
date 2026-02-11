@@ -159,8 +159,8 @@
 
 如果您对本协议有任何问题或疑虑，请通过以下方式联系我们：
 
-- **GitHub 仓库**：[https://github.com/bili-47177171806/sekai-pass](https://github.com/bili-47177171806/sekai-pass)
-- **GitHub Issues**：[https://github.com/bili-47177171806/sekai-pass/issues](https://github.com/bili-47177171806/sekai-pass/issues)
+- **GitHub 仓库**：[https://github.com/25-ji-code-de/sekai-pass](https://github.com/25-ji-code-de/sekai-pass)
+- **GitHub Issues**：[https://github.com/25-ji-code-de/sekai-pass/issues](https://github.com/25-ji-code-de/sekai-pass/issues)
 - **电子邮件**：通过 GitHub 个人资料页面联系项目维护者
 
 **特别提示**：如需行使个人信息权利（查阅、更正、删除、注销账户等），请优先通过 GitHub Issues 提交请求，我们将在 **15个工作日内** 响应。

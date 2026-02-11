@@ -160,7 +160,7 @@ Cloudflare 可能会设置必要的 Cookies 以提供安全防护（如 Turnstil
 
 如果您对本隐私政策有任何问题、意见或疑虑，或者发现任何安全漏洞，或需要行使个人信息权利（查阅、更正、删除、注销账户等），请通过以下方式联系我们：
 
-- **GitHub Issues**：[https://github.com/bili-47177171806/sekai-pass/issues](https://github.com/bili-47177171806/sekai-pass/issues)（推荐）
+- **GitHub Issues**：[https://github.com/25-ji-code-de/sekai-pass/issues](https://github.com/25-ji-code-de/sekai-pass/issues)（推荐）
 - **电子邮件**：通过 GitHub 个人资料页面联系项目维护者
 - **响应时间**：我们将在收到请求后 **15个工作日内** 响应您的请求
 
