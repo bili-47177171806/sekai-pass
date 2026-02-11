@@ -67,6 +67,25 @@ function enforceHTTPS(c: any): Response | null {
   return null;
 }
 
+/**
+ * Parse redirect URIs from database (supports both JSON array and comma-separated string)
+ * Handles legacy comma-separated format and modern JSON array format
+ */
+function parseRedirectUris(redirectUris: string): string[] {
+  try {
+    // Try parsing as JSON array first
+    const parsed = JSON.parse(redirectUris);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    // If it's a JSON string (not array), treat as single URI
+    return [String(parsed)];
+  } catch {
+    // Fallback to comma-separated format
+    return redirectUris.split(',').map(uri => uri.trim()).filter(uri => uri.length > 0);
+  }
+}
+
 // CORS middleware for API and OAuth endpoints
 app.use("/api/*", cors({
   origin: "*",
@@ -228,7 +247,7 @@ app.get("/oauth/authorize", async (c) => {
     return c.text("Invalid client", 400);
   }
 
-  const allowedUris = JSON.parse(app.redirect_uris as string);
+  const allowedUris = parseRedirectUris(app.redirect_uris as string);
   if (!allowedUris.includes(redirectUri)) {
     return c.text("Invalid redirect URI", 400);
   }
@@ -367,6 +386,7 @@ app.post("/oauth/token", async (c) => {
   // Handle authorization_code grant
   if (grantType === "authorization_code") {
     const code = formData.get("code")?.toString();
+    const redirectUri = formData.get("redirect_uri")?.toString();
     const codeVerifier = formData.get("code_verifier")?.toString();
 
     if (!code) {
@@ -379,6 +399,14 @@ app.post("/oauth/token", async (c) => {
 
     if (!authCode || (authCode.expires_at as number) < Date.now()) {
       return c.json({ error: "invalid_grant" }, 400);
+    }
+
+    // OAuth 2.1: Verify redirect_uri matches the one from authorization request
+    if (redirectUri !== authCode.redirect_uri) {
+      return c.json({
+        error: "invalid_grant",
+        error_description: "redirect_uri does not match authorization request"
+      }, 400);
     }
 
     // OAuth 2.1: PKCE verification is mandatory
