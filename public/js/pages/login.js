@@ -75,7 +75,16 @@ export function renderLogin(app, api, navigate) {
       if (response.token) {
         localStorage.setItem('token', response.token);
         api.setAuthToken(response.token);
-        navigate('/');
+
+        // Check for redirect parameter
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+
+        if (redirect) {
+          navigate(redirect);
+        } else {
+          navigate('/');
+        }
       }
     } catch (error) {
       showError(error.message || '登录失败，请重试');

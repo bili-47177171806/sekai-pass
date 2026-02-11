@@ -47,14 +47,27 @@ function render() {
   const publicRoutes = ['/login', '/register'];
 
   if (!token && !publicRoutes.includes(path)) {
-    window.history.pushState({}, '', '/login');
+    // Save current path as redirect parameter
+    const redirectPath = path + window.location.search;
+    window.history.pushState({}, '', `/login?redirect=${encodeURIComponent(redirectPath)}`);
     renderLogin(app, api, navigate);
     return;
   }
 
   if (token && publicRoutes.includes(path)) {
-    window.history.pushState({}, '', '/');
-    renderDashboard(app, api, navigate);
+    // Check if there's a redirect parameter
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+
+    if (redirect) {
+      // Redirect to the specified path
+      window.history.pushState({}, '', redirect);
+      render();
+    } else {
+      // Default to dashboard
+      window.history.pushState({}, '', '/');
+      renderDashboard(app, api, navigate);
+    }
     return;
   }
 

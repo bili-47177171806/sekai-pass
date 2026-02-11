@@ -110,6 +110,10 @@ apiRouter.post("/auth/login", async (c) => {
     const lucia = initializeLucia(c.env.DB);
     const session = await lucia.createSession(result.id as string, {});
 
+    // Set session cookie for OAuth flow
+    const sessionCookie = lucia.createSessionCookie(session.id);
+    setCookie(c, sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+
     return c.json({
       success: true,
       token: session.id,
@@ -182,6 +186,10 @@ apiRouter.post("/auth/register", async (c) => {
 
     const lucia = initializeLucia(c.env.DB);
     const session = await lucia.createSession(userId, {});
+
+    // Set session cookie for OAuth flow
+    const sessionCookie = lucia.createSessionCookie(session.id);
+    setCookie(c, sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 
     return c.json({
       success: true,

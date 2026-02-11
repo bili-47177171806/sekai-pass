@@ -92,7 +92,16 @@ export function renderRegister(app, api, navigate) {
       if (response.token) {
         localStorage.setItem('token', response.token);
         api.setAuthToken(response.token);
-        navigate('/');
+
+        // Check for redirect parameter
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+
+        if (redirect) {
+          navigate(redirect);
+        } else {
+          navigate('/');
+        }
       }
     } catch (error) {
       showError(error.message || '注册失败，请重试');
