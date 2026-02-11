@@ -61,8 +61,8 @@ npx wrangler d1 execute sekai_pass_db --remote --file=./schema.sql
 
 ```bash
 # 创建 KV 命名空间
-wrangler kv:namespace create "OIDC_KEYS"
-wrangler kv:namespace create "OIDC_KEYS" --preview
+npx wrangler kv:namespace create "OIDC_KEYS"
+npx wrangler kv:namespace create "OIDC_KEYS" --preview
 ```
 
 将输出的命名空间 ID 更新到 `wrangler.toml`。
@@ -74,7 +74,7 @@ wrangler kv:namespace create "OIDC_KEYS" --preview
 openssl rand -hex 32
 
 # 设置 secret
-wrangler secret put KEY_ENCRYPTION_SECRET
+npx wrangler secret put KEY_ENCRYPTION_SECRET
 # 粘贴上面生成的密钥
 ```
 

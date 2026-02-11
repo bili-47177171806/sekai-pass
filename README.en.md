@@ -58,8 +58,8 @@ npx wrangler d1 execute sekai_pass_db --remote --file=./schema.sql
 
 ```bash
 # Create KV Namespace
-wrangler kv:namespace create "OIDC_KEYS"
-wrangler kv:namespace create "OIDC_KEYS" --preview
+npx wrangler kv:namespace create "OIDC_KEYS"
+npx wrangler kv:namespace create "OIDC_KEYS" --preview
 ```
 
 Update `wrangler.toml` with Namespace ID in the output.
@@ -71,7 +71,7 @@ Update `wrangler.toml` with Namespace ID in the output.
 openssl rand -hex 32
 
 # Set secret
-wrangler secret put KEY_ENCRYPTION_SECRET
+npx wrangler secret put KEY_ENCRYPTION_SECRET
 # Paste the generated secret into the prompt.
 ```
 
