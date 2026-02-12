@@ -1,4 +1,5 @@
-@media (prefers-color-scheme: dark){
+/* ========== CSS Variables / Theme System ========== */
+/* Default theme: Dark (Niigo style) */
 :root {
   --bg-color: #0b0b0e;
   --bg-black: 0 0 0;
@@ -19,7 +20,47 @@
   --success-color: 129 199 132;
   --code-font: 'Menlo', 'Monaco', 'Courier New', monospace;
 }
+
+/* Future theme support - Light mode (placeholder) */
+@media (prefers-color-scheme: light) {
+  :root {
+    /* Uncomment to enable light theme:
+    --bg-color: #f5f5f7;
+    --bg-black: 0 0 0;
+    --bg-white: 255 255 255;
+    --button-color: #ffffff;
+    --card-bg: #ffffff;
+    --card-shadow: rgba(0, 0, 0, 0.1);
+    --primary-color: #7c5fb8;
+    --primary-color-mix: 124 95 184;
+    --primary-hover: #9478cc;
+    --text-main: #1d1d1f;
+    --text-muted: #86868b;
+    --border-color: #d2d2d7;
+    --gradient-bg: #9478cc;
+    --input-bg: #f5f5f7;
+    --input-placeholder: rgba(0, 0, 0, 0.3);
+    --error-color: 211 47 47;
+    --success-color: 56 142 60;
+    */
+  }
 }
+
+/* Custom theme classes for future manual theme switching */
+/* Example: <body class="theme-leo"> */
+/*
+.theme-leo {
+  --primary-color: #ff9800;
+  --primary-color-mix: 255 152 0;
+  --gradient-bg: #f57c00;
+}
+
+.theme-vbs {
+  --primary-color: #f44336;
+  --primary-color-mix: 244 67 54;
+  --gradient-bg: #d32f2f;
+}
+*/
 
 * {
   margin: 0;
