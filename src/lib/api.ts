@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword, generateId } from "./password";
 import { decryptPassword, validateRequest } from "./decrypt";
 import { verifyTurnstile } from "./turnstile";
 import { createChallengeState, generatePoWChallenge, verifyPoWHash, type ChallengeState } from "./pow";
+import { validateScopeParameter, formatScopes } from "./scope";
 
 type Bindings = {
   DB: D1Database;
@@ -19,6 +20,25 @@ type Variables = {
 };
 
 export const apiRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+function parseRedirectUris(redirectUris: string): string[] {
+  try {
+    const parsed = JSON.parse(redirectUris);
+    if (Array.isArray(parsed)) return parsed;
+    return [String(parsed)];
+  } catch {
+    return redirectUris.split(',').map(uri => uri.trim()).filter(uri => uri.length > 0);
+  }
+}
+
+function isLoopback(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname.startsWith('127.');
+  } catch {
+    return false;
+  }
+}
 
 // Public configuration endpoint
 apiRouter.get("/config", async (c) => {
@@ -434,6 +454,25 @@ apiRouter.post("/oauth/authorize", async (c) => {
       return c.json({ error: "缺少必要参数" }, 400);
     }
 
+    // Validate redirect_uri against registered URIs
+    const app = await c.env.DB.prepare(
+      "SELECT * FROM applications WHERE client_id = ?"
+    ).bind(client_id).first();
+
+    if (!app) {
+      return c.json({ error: "应用不存在" }, 404);
+    }
+
+    const allowedUris = parseRedirectUris(app.redirect_uris as string);
+    if (!allowedUris.includes(redirect_uri)) {
+      return c.json({ error: "Invalid redirect URI" }, 400);
+    }
+
+    // Enforce HTTPS on redirect_uri (except loopback)
+    if (redirect_uri.startsWith('http:') && !isLoopback(redirect_uri)) {
+      return c.json({ error: "redirect_uri must use HTTPS" }, 400);
+    }
+
     // OAuth 2.1: PKCE is mandatory for all clients
     if (!code_challenge) {
       return c.json({ error: "code_challenge is required (PKCE mandatory)" }, 400);
@@ -445,13 +484,21 @@ apiRouter.post("/oauth/authorize", async (c) => {
       return c.json({ error: "Only S256 code_challenge_method is supported" }, 400);
     }
 
+    // Validate and parse scope
+    const scopeParam = body.scope || null;
+    const scopeValidation = validateScopeParameter(scopeParam);
+    if (!scopeValidation.valid) {
+      return c.json({ error: scopeValidation.error || "Invalid scope" }, 400);
+    }
+    const scope = formatScopes(scopeValidation.scopes);
+
     const code = generateId(32);
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
     const createdAt = Date.now();
 
     await c.env.DB.prepare(
-      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, created_at, code_challenge, code_challenge_method, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(code, user.id, client_id, redirect_uri, expiresAt, createdAt, code_challenge, method, state || null).run();
+      "INSERT INTO auth_codes (code, user_id, client_id, redirect_uri, expires_at, created_at, code_challenge, code_challenge_method, state, scope) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(code, user.id, client_id, redirect_uri, expiresAt, createdAt, code_challenge, method, state || null, scope).run();
 
     // OAuth 2.1: Include issuer parameter to prevent mix-up attacks
     const issuer = new URL(c.req.url).origin;

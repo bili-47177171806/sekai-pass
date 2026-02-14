@@ -252,6 +252,11 @@ app.get("/oauth/authorize", async (c) => {
     return c.text("Invalid redirect URI", 400);
   }
 
+  // OAuth 2.1: redirect_uri must use HTTPS (except loopback)
+  if (redirectUri.startsWith('http:') && !isLoopback(redirectUri)) {
+    return c.text("redirect_uri must use HTTPS", 400);
+  }
+
   return c.html(html.authorizePage(
     {
       name: app.name,
@@ -290,17 +295,31 @@ app.post("/oauth/authorize", async (c) => {
     const scopeParam = formData.get("scope")?.toString() || null;
     const nonce = formData.get("nonce")?.toString() || null;
 
+    if (!clientId || !redirectUri) {
+      return c.text("Invalid request", 400);
+    }
+
+    // Re-validate redirect_uri against registered URIs (form data can be tampered)
+    const postApp = await c.env.DB.prepare(
+      "SELECT redirect_uris FROM applications WHERE client_id = ?"
+    ).bind(clientId).first();
+
+    if (!postApp) {
+      return c.text("Invalid client", 400);
+    }
+
+    const postAllowedUris = parseRedirectUris(postApp.redirect_uris as string);
+    if (!postAllowedUris.includes(redirectUri)) {
+      return c.text("Invalid redirect URI", 400);
+    }
+
     if (action === "deny") {
-      const errorUrl = new URL(redirectUri!);
+      const errorUrl = new URL(redirectUri);
       errorUrl.searchParams.set("error", "access_denied");
       if (state) {
         errorUrl.searchParams.set("state", state);
       }
       return c.redirect(errorUrl.toString());
-    }
-
-    if (!clientId || !redirectUri) {
-      return c.text("Invalid request", 400);
     }
 
     // Validate and parse scope
