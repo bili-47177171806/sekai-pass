@@ -44,6 +44,7 @@ class D1Adapter implements Adapter {
     const user: LuciaDatabaseUser = {
       id: result.user_id as string,
       attributes: {
+        id: result.user_id as string,
         username: result.username as string,
         email: result.email as string,
         display_name: result.display_name as string | null,

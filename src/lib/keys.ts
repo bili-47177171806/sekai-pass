@@ -37,20 +37,21 @@ export async function generateSigningKey(): Promise<{
   );
 
   // Export keys as JWK
-  const publicKey = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
-  const privateKey = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
+  const kp = keyPair as CryptoKeyPair;
+  const publicKey = await crypto.subtle.exportKey("jwk", kp.publicKey) as JsonWebKey;
+  const privateKey = await crypto.subtle.exportKey("jwk", kp.privateKey) as JsonWebKey;
 
   // Generate key ID
   const kid = generateId(16);
 
   // Add required JWK fields
-  publicKey.kid = kid;
-  publicKey.alg = "ES256";
-  publicKey.use = "sig";
+  (publicKey as any).kid = kid;
+  (publicKey as any).alg = "ES256";
+  (publicKey as any).use = "sig";
 
-  privateKey.kid = kid;
-  privateKey.alg = "ES256";
-  privateKey.use = "sig";
+  (privateKey as any).kid = kid;
+  (privateKey as any).alg = "ES256";
+  (privateKey as any).use = "sig";
 
   return {
     kid,

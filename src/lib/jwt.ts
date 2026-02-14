@@ -6,7 +6,7 @@ export type JWTAlgorithm = "ES256" | "RS256";
 /**
  * Base64URL encode (RFC 4648)
  */
-export function base64URLEncode(buffer: ArrayBuffer): string {
+export function base64URLEncode(buffer: ArrayBuffer | Uint8Array): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {

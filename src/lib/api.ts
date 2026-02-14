@@ -379,13 +379,13 @@ apiRouter.put("/auth/profile", async (c) => {
 
     return c.json({
       success: true,
-      user: {
+      user: updatedUser ? {
         id: updatedUser.id,
         username: updatedUser.username,
         email: updatedUser.email,
         display_name: updatedUser.display_name,
         avatar_url: updatedUser.avatar_url
-      }
+      } : null
     });
   } catch (error) {
     console.error("Update profile error:", error);
