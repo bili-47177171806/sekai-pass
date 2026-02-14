@@ -1,7 +1,12 @@
 import { encryptPassword, generateNonce, getFingerprint, showError, hideMessages, setLoading } from '../utils.js';
+import { solvePoW } from '../pow-solver.js';
 
 export function renderRegister(app, api, navigate) {
   const turnstileSiteKey = window.TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+
+  let captchaMode = 'pending';
+  let challengeId = null;
+  let powNonce = null;
 
   app.innerHTML = `
     <div class="container">
@@ -26,7 +31,7 @@ export function renderRegister(app, api, navigate) {
           <label for="display_name">昵称（可选）</label>
           <input type="text" id="display_name" name="display_name" placeholder="你想被如何称呼？">
         </div>
-        
+
         <label class="terms-agreement">
           <input type="checkbox" name="agree_terms" required>
           我已阅读并同意
@@ -36,7 +41,8 @@ export function renderRegister(app, api, navigate) {
         </label>
 
         <div class="form-group" style="display: flex; justify-content: center;">
-          <div class="cf-turnstile" data-sitekey="${turnstileSiteKey}" data-theme="dark"></div>
+          <div id="turnstile-widget"></div>
+          <div id="pow-status" style="display: none; text-align: center; padding: 10px; color: #aaa; font-size: 14px;"></div>
         </div>
         <button type="submit" id="register-btn">完成注册</button>
       </form>
@@ -50,13 +56,82 @@ export function renderRegister(app, api, navigate) {
     </footer>
   `;
 
-  // Load Turnstile script
-  if (!document.querySelector('script[src*="turnstile"]')) {
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+  const turnstileWidget = document.getElementById('turnstile-widget');
+  const powStatus = document.getElementById('pow-status');
+
+  // Fetch challenge ID in parallel
+  const challengeReady = api.get('/challenge/init').then(r => {
+    challengeId = r.challengeId;
+  }).catch(err => console.error('Challenge init failed:', err));
+
+  // Sequential captcha init: try Turnstile first, fall back to PoW
+  initCaptcha();
+
+  async function initCaptcha() {
+    try {
+      const available = await waitForTurnstile(5000);
+
+      if (available) {
+        try {
+          const widgetId = window.turnstile.render(turnstileWidget, {
+            sitekey: turnstileSiteKey,
+            theme: 'dark',
+          });
+          await challengeReady;
+          if (!challengeId) throw new Error('no challengeId');
+          await api.post('/challenge/report', { challengeId, turnstileLoaded: true });
+          captchaMode = 'turnstile';
+          return;
+        } catch (e) {
+          console.error('Turnstile render failed:', e);
+        }
+      }
+
+      // Turnstile unavailable or render failed → PoW
+      turnstileWidget.style.display = 'none';
+      powStatus.style.display = 'block';
+      powStatus.textContent = '正在验证...';
+
+      await challengeReady;
+      if (!challengeId) {
+        powStatus.textContent = '验证初始化失败，请刷新重试';
+        powStatus.style.color = '#f44336';
+        return;
+      }
+
+      const result = await api.post('/challenge/report', { challengeId, turnstileLoaded: false });
+      powNonce = await solvePoW(result.challenge, result.difficulty);
+      captchaMode = 'pow';
+      powStatus.textContent = '验证完成 ✓';
+      powStatus.style.color = '#4caf50';
+    } catch (err) {
+      console.error('Captcha init failed:', err);
+      powStatus.style.display = 'block';
+      powStatus.textContent = '验证失败，请刷新重试';
+      powStatus.style.color = '#f44336';
+    }
+  }
+
+  function waitForTurnstile(timeout) {
+    return new Promise(resolve => {
+      if (window.turnstile) return resolve(true);
+
+      if (!document.querySelector('script[src*="turnstile"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        document.head.appendChild(script);
+      }
+
+      const timer = setTimeout(() => { clearInterval(check); resolve(false); }, timeout);
+      const check = setInterval(() => {
+        if (window.turnstile) {
+          clearTimeout(timer);
+          clearInterval(check);
+          resolve(true);
+        }
+      }, 100);
+    });
   }
 
   // Handle form submission
@@ -71,10 +146,22 @@ export function renderRegister(app, api, navigate) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const displayName = document.getElementById('display_name').value || null;
-    const turnstileResponse = document.querySelector('input[name="cf-turnstile-response"]');
 
-    if (!turnstileResponse || !turnstileResponse.value) {
-      showError('请完成人机验证');
+    if (captchaMode === 'pending') {
+      showError('请等待人机验证完成');
+      return;
+    }
+
+    if (captchaMode === 'turnstile') {
+      const turnstileResponse = document.querySelector('input[name="cf-turnstile-response"]');
+      if (!turnstileResponse || !turnstileResponse.value) {
+        showError('请完成人机验证');
+        return;
+      }
+    }
+
+    if (captchaMode === 'pow' && !powNonce) {
+      showError('请等待人机验证完成');
       return;
     }
 
@@ -91,7 +178,7 @@ export function renderRegister(app, api, navigate) {
       const fingerprint = getFingerprint();
       const timestamp = Date.now();
 
-      const response = await api.post('/auth/register', {
+      const payload = {
         username,
         email,
         p: encryptedPassword,
@@ -99,27 +186,27 @@ export function renderRegister(app, api, navigate) {
         nonce,
         fp: fingerprint,
         ts: timestamp,
-        'cf-turnstile-response': turnstileResponse.value
-      });
+        challengeId,
+        captchaType: captchaMode,
+      };
+
+      if (captchaMode === 'turnstile') {
+        payload['cf-turnstile-response'] = document.querySelector('input[name="cf-turnstile-response"]').value;
+      } else {
+        payload.powNonce = powNonce;
+      }
+
+      const response = await api.post('/auth/register', payload);
 
       if (response.token) {
         localStorage.setItem('token', response.token);
         api.setAuthToken(response.token);
-
-        // Check for redirect parameter
         const params = new URLSearchParams(window.location.search);
-        const redirect = params.get('redirect');
-
-        if (redirect) {
-          navigate(redirect);
-        } else {
-          navigate('/');
-        }
+        navigate(params.get('redirect') || '/');
       }
     } catch (error) {
       showError(error.message || '注册失败，请重试');
-      // Reset Turnstile
-      if (window.turnstile) {
+      if (captchaMode === 'turnstile' && window.turnstile) {
         window.turnstile.reset();
       }
     } finally {
@@ -127,7 +214,6 @@ export function renderRegister(app, api, navigate) {
     }
   });
 
-  // Handle navigation links
   app.querySelectorAll('a[data-link]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();

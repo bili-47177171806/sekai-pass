@@ -4,9 +4,11 @@ import { initializeLucia } from "./auth";
 import { hashPassword, verifyPassword, generateId } from "./password";
 import { decryptPassword, validateRequest } from "./decrypt";
 import { verifyTurnstile } from "./turnstile";
+import { createChallengeState, generatePoWChallenge, verifyPoWHash, type ChallengeState } from "./pow";
 
 type Bindings = {
   DB: D1Database;
+  KV: KVNamespace;
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;
 };
@@ -38,6 +40,82 @@ apiRouter.get("/oauth/config", async (c) => {
   });
 });
 
+// Challenge init — issue a session challenge
+apiRouter.get("/challenge/init", async (c) => {
+  const challengeId = crypto.randomUUID();
+  const ip = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For") || "unknown";
+  const state = createChallengeState(ip);
+  await c.env.KV.put(`challenge:${challengeId}`, JSON.stringify(state), { expirationTtl: 300 });
+  return c.json({ challengeId });
+});
+
+// Challenge report — client reports Turnstile load status, server decides method
+apiRouter.post("/challenge/report", async (c) => {
+  const { challengeId, turnstileLoaded } = await c.req.json();
+  const raw = await c.env.KV.get(`challenge:${challengeId}`);
+  if (!raw) return c.json({ error: "无效的验证会话" }, 400);
+
+  const state: ChallengeState = JSON.parse(raw);
+  if (state.used) return c.json({ error: "验证会话已使用" }, 403);
+
+  const ip = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For") || "unknown";
+  if (state.ip !== ip && state.ip !== "unknown") return c.json({ error: "验证会话 IP 不匹配" }, 403);
+
+  if (turnstileLoaded) {
+    state.turnstileAttempted = true;
+    await c.env.KV.put(`challenge:${challengeId}`, JSON.stringify(state), { expirationTtl: 300 });
+    return c.json({ method: 'turnstile' });
+  } else {
+    const pow = generatePoWChallenge();
+    state.powIssued = true;
+    state.powChallenge = pow.challenge;
+    await c.env.KV.put(`challenge:${challengeId}`, JSON.stringify(state), { expirationTtl: 300 });
+    return c.json({ method: 'pow', challenge: pow.challenge, difficulty: pow.difficulty });
+  }
+});
+
+// Verify captcha: stateful, checks KV challenge state
+async function verifyCaptcha(
+  body: Record<string, any>,
+  kv: KVNamespace,
+  secretKey: string,
+  remoteIp?: string
+): Promise<string | null> {
+  const challengeId = body.challengeId;
+  if (!challengeId) return "请完成人机验证";
+
+  const raw = await kv.get(`challenge:${challengeId}`);
+  if (!raw) return "验证会话无效或已过期";
+
+  const state: ChallengeState = JSON.parse(raw);
+  if (state.used) return "验证会话已使用";
+  if (Date.now() - state.issued > 5 * 60 * 1000) return "验证会话已过期";
+  if (state.ip !== remoteIp && state.ip !== "unknown") return "验证会话 IP 不匹配";
+
+  const type = body.captchaType;
+
+  if (type === 'turnstile') {
+    const token = body["cf-turnstile-response"];
+    if (!token) return "请完成人机验证";
+    const valid = await verifyTurnstile(token, secretKey, remoteIp);
+    if (!valid) return "人机验证失败，请重试";
+  } else if (type === 'pow') {
+    if (!state.powIssued) return "未授权的验证方式";
+    const nonce = body.powNonce;
+    if (!nonce || !state.powChallenge) return "验证数据不完整";
+    const valid = await verifyPoWHash(state.powChallenge, nonce);
+    if (!valid) return "人机验证失败，请重试";
+  } else {
+    return "请完成人机验证";
+  }
+
+  // Mark as used (anti-replay)
+  state.used = true;
+  await kv.put(`challenge:${challengeId}`, JSON.stringify(state), { expirationTtl: 60 });
+
+  return null;
+}
+
 // Middleware to validate session from Bearer token
 apiRouter.use("*", async (c, next) => {
   const authorization = c.req.header("Authorization");
@@ -67,22 +145,16 @@ apiRouter.post("/auth/login", async (c) => {
   try {
     const body = await c.req.json();
     const { username, p: encryptedPassword, nonce, fp: fingerprint, ts: timestamp } = body;
-    const turnstileToken = body["cf-turnstile-response"];
 
     if (!username || !encryptedPassword) {
       return c.json({ error: "用户名和密码不能为空" }, 400);
     }
 
-    // Verify Turnstile token
-    if (!turnstileToken) {
-      return c.json({ error: "请完成人机验证" }, 400);
-    }
-
+    // Verify captcha (Turnstile or PoW fallback)
     const remoteIp = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For");
-    const turnstileValid = await verifyTurnstile(turnstileToken, c.env.TURNSTILE_SECRET_KEY, remoteIp);
-
-    if (!turnstileValid) {
-      return c.json({ error: "人机验证失败，请重试" }, 400);
+    const captchaError = await verifyCaptcha(body, c.env.KV, c.env.TURNSTILE_SECRET_KEY, remoteIp);
+    if (captchaError) {
+      return c.json({ error: captchaError }, 400);
     }
 
     // Validate request parameters
@@ -138,22 +210,16 @@ apiRouter.post("/auth/register", async (c) => {
   try {
     const body = await c.req.json();
     const { username, email, p: encryptedPassword, display_name, nonce, fp: fingerprint, ts: timestamp } = body;
-    const turnstileToken = body["cf-turnstile-response"];
 
     if (!username || !email || !encryptedPassword) {
       return c.json({ error: "所有必填项不能为空" }, 400);
     }
 
-    // Verify Turnstile token
-    if (!turnstileToken) {
-      return c.json({ error: "请完成人机验证" }, 400);
-    }
-
+    // Verify captcha (Turnstile or PoW fallback)
     const remoteIp = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For");
-    const turnstileValid = await verifyTurnstile(turnstileToken, c.env.TURNSTILE_SECRET_KEY, remoteIp);
-
-    if (!turnstileValid) {
-      return c.json({ error: "人机验证失败，请重试" }, 400);
+    const captchaError = await verifyCaptcha(body, c.env.KV, c.env.TURNSTILE_SECRET_KEY, remoteIp);
+    if (captchaError) {
+      return c.json({ error: captchaError }, 400);
     }
 
     // Validate request parameters
