@@ -1,7 +1,7 @@
 {
   "name": "sekai-pass",
   "version": "1.0.0",
-  "description": "SEKAI Pass - Modern SSO Single Sign-On System built with Cloudflare Workers, supporting OAuth 2.1 and OpenID Connect",
+  "description": "SEKAI Pass - Modern SSO Single Sign-On System built with Cloudflare Workers, supporting OAuth 2.1 and OpenID Connect. Licensed under Apache-2.0.",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
@@ -28,7 +28,7 @@
     "edge-computing"
   ],
   "author": "bili_47177171806",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bili-47177171806/sekai-pass.git"

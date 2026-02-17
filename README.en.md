@@ -471,7 +471,7 @@ npm run deploy
 
 ## 📄 License
 
-MIT
+Apache License 2.0
 
 ## 🤝 Contribution
 

@@ -484,7 +484,7 @@ npm run deploy
 
 ## 📄 许可证
 
-MIT License
+Apache License 2.0
 
 详见 [LICENSE](LICENSE) 文件。
 

@@ -28,7 +28,7 @@
 
 本协议内容同时包括以下文件，上述内容一经正式发布，即为本协议不可分割的组成部分：
 - [隐私政策 (Privacy Policy)](./PRIVACY_POLICY.md)
-- [MIT 许可证 (License)](./LICENSE)
+- [Apache 2.0 许可证 (License)](./LICENSE)
 
 ### 1.3 协议的修改
 
@@ -108,7 +108,7 @@
 
 ### 5.1 原创代码
 
-5.1.1 本服务的原创源代码（TypeScript, SQL 等）采用 MIT 许可证开源。
+5.1.1 本服务的原创源代码（TypeScript, SQL 等）采用 Apache License 2.0 开源。
 
 ### 5.2 软件界面
 
