@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /**
  * PoW solver — spawns a Web Worker for sync SHA-256 hashing
  */

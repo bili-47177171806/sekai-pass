@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { showError, setLoading } from '../utils.js';
 
 export async function renderDashboard(app, api, navigate) {

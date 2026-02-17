@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Client-side encryption utilities
 export async function encryptPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));

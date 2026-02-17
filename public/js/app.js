@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { APIClient, getQueryParams } from './utils.js';
 import { renderLogin } from './pages/login.js';
 import { renderRegister } from './pages/register.js';

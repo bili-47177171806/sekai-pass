@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { encryptPassword, generateNonce, getFingerprint, showError, hideMessages, setLoading } from '../utils.js';
 import { solvePoW } from '../pow-solver.js';
 

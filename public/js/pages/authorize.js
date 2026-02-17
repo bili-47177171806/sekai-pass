@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { showError, getQueryParams, setLoading } from '../utils.js';
 
 export async function renderAuthorize(app, api, navigate) {
