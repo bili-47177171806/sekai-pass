@@ -5,8 +5,9 @@ import { mountAvatars } from '../avatar.js';
 export async function renderAuthorize(app, api, navigate) {
   const token = localStorage.getItem('token');
   if (!token) {
-    const params = new URLSearchParams(window.location.search);
-    navigate(`/login?redirect=/oauth/authorize?${params.toString()}`);
+    // redirect 值必须整体编码，否则授权参数里的 & 会散落成 login 页的顶层参数
+    const redirectPath = window.location.pathname + window.location.search;
+    navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
     return;
   }
 

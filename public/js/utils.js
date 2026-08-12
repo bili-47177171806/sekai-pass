@@ -83,7 +83,9 @@ export class APIClient {
         // Token expired or invalid
         localStorage.removeItem('token');
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+          // 带上当前地址（含 OAuth 授权参数等 query），登录后可无缝回到原页面
+          const redirectPath = window.location.pathname + window.location.search;
+          window.location.href = `/login?redirect=${encodeURIComponent(redirectPath)}`;
         }
       }
       throw error;

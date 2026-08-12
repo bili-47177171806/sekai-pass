@@ -38,6 +38,12 @@ describe("external auth flow values", () => {
     assert.equal(sanitizeExternalLoginRedirect("/settings"), "/settings");
   });
 
+  test("login redirects may resume the OAuth consent page", () => {
+    const consent =
+      "/oauth/authorize?client_id=abc&redirect_uri=https%3A%2F%2Fapp.example%2Fcb&response_type=code&state=xyz";
+    assert.equal(sanitizeExternalLoginRedirect(consent), consent);
+  });
+
   test("PKCE challenge is RFC 7636 base64url", async () => {
     const verifier = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~";
     const challenge = await createPKCEChallenge(verifier);
