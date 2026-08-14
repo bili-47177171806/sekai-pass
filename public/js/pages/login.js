@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { encryptPassword, generateNonce, getFingerprint, showError, hideMessages, setLoading } from '../utils.js';
+import { describeError } from '../auth-errors.js';
 import { createCaptcha } from '../captcha.js';
 import { isPasskeySupported, startPasskeyAuthentication } from '../webauthn.js';
 
@@ -66,7 +67,7 @@ export function renderLogin(app, api, navigate) {
 
   const params = new URLSearchParams(window.location.search);
   const externalError = params.get('external_error');
-  if (externalError) showError(externalError);
+  if (externalError) showError(describeError(externalError));
 
   function closeExternalLogin() {
     overlay.hidden = true;
@@ -105,7 +106,7 @@ export function renderLogin(app, api, navigate) {
       closeExternalLogin();
       navigate(currentParams.get('redirect') || '/');
     } catch (error) {
-      showError(error.message || '通行密钥登录失败，请重试');
+      showError(describeError(error && error.message ? error : '通行密钥登录失败，请重试'));
       setLoading(button, false);
     }
   }
@@ -144,7 +145,7 @@ export function renderLogin(app, api, navigate) {
           window.location.assign(result.authorization_url);
         } catch (error) {
           closeExternalLogin();
-          showError(error.message || '无法启动第三方登录');
+          showError(describeError(error && error.message ? error : '无法启动第三方登录'));
           setLoading(button, false);
         }
       });
@@ -201,7 +202,7 @@ export function renderLogin(app, api, navigate) {
         navigate(currentParams.get('redirect') || '/');
       }
     } catch (error) {
-      showError(error.message || '登录失败，请重试');
+      showError(describeError(error && error.message ? error : '登录失败，请重试'));
       await captcha.refreshAfterFailure();
     } finally {
       setLoading(loginBtn, false);

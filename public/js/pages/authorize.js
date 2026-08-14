@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { showError, getQueryParams, setLoading, escapeHtml } from '../utils.js';
+import { describeError } from '../auth-errors.js';
 import { mountAvatars } from '../avatar.js';
 
 export async function renderAuthorize(app, api, navigate) {
@@ -26,7 +27,7 @@ export async function renderAuthorize(app, api, navigate) {
   } = params;
 
   if (!client_id || !redirect_uri || response_type !== 'code') {
-    showError('Invalid request parameters');
+    showError(describeError('Invalid request parameters'));
     return;
   }
 
@@ -202,7 +203,7 @@ export async function renderAuthorize(app, api, navigate) {
           window.location.href = redirectUrl.toString();
         }
       } catch (error) {
-        showError(error.message || '授权失败');
+        showError(describeError(error && error.message ? error : '授权失败'));
         setLoading(allowBtn, false);
       }
     });
@@ -219,6 +220,6 @@ export async function renderAuthorize(app, api, navigate) {
     });
 
   } catch (error) {
-    showError(error.message || '加载应用信息失败');
+    showError(describeError(error && error.message ? error : '加载应用信息失败'));
   }
 }

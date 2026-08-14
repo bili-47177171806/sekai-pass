@@ -137,12 +137,40 @@ export class APIClient {
 }
 
 // Show error message
-export function showError(message) {
+//
+// 接受两种入参，保持向后兼容：
+//   - 字符串：按原样展示（页面里大量本地文案调用仍然有效）
+//   - descriptor 对象（describeError 的返回值）：结构化展示
+//     错误码 + 标题 + 原因 + 解决方案，并保留原始 message 供反馈。
+export function showError(messageOrDescriptor) {
   const errorDiv = document.getElementById('error-message');
-  if (errorDiv) {
-    errorDiv.textContent = `⚠️ ${message}`;
-    errorDiv.style.display = 'block';
+  if (!errorDiv) return;
+
+  const d = messageOrDescriptor;
+  const isDescriptor = d && typeof d === 'object' && typeof d.code === 'string';
+
+  if (isDescriptor) {
+    const parts = [
+      `<span class="error-code">${escapeHtml(d.code)}</span>`,
+      `<span class="error-title">${escapeHtml(d.title || '操作失败')}</span>`,
+    ];
+    if (d.description) parts.push(`<span class="error-desc">${escapeHtml(d.description)}</span>`);
+    if (d.solution) {
+      parts.push(
+        `<span class="error-solution"><span class="error-solution__label">解决方案</span>${escapeHtml(d.solution)}</span>`
+      );
+    }
+    // 原始 message 与标题不同才附上，避免重复
+    if (d.originalMessage && d.originalMessage !== d.title) {
+      parts.push(`<span class="error-detail">${escapeHtml(d.originalMessage)}</span>`);
+    }
+    errorDiv.classList.add('error--structured');
+    errorDiv.innerHTML = parts.join('');
+  } else {
+    errorDiv.classList.remove('error--structured');
+    errorDiv.textContent = `⚠️ ${d}`;
   }
+  errorDiv.style.display = 'block';
 }
 
 // Show success message

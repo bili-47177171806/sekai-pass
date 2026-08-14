@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createHCaptcha } from '../hcaptcha.js';
 import { showError, setLoading } from '../utils.js';
+import { describeError } from '../auth-errors.js';
 
 function suggestedUsername(profile) {
   const source = profile.email?.split('@')[0] || profile.display_name || '';
@@ -28,7 +29,7 @@ export async function renderExternalComplete(app, api, navigate) {
   `;
 
   if (!ticket) {
-    showError('登录票据无效，请重新登录');
+    showError(describeError('登录票据无效，请重新登录'));
     return;
   }
 
@@ -37,7 +38,7 @@ export async function renderExternalComplete(app, api, navigate) {
     return;
   } catch (error) {
     if (error.status !== 410) {
-      showError(error.message || '登录失败，请重新登录');
+      showError(describeError(error && error.message ? error : '登录失败，请重新登录'));
       return;
     }
   }
@@ -46,7 +47,7 @@ export async function renderExternalComplete(app, api, navigate) {
   try {
     pending = await api.get(`/auth/external/pending?ticket=${encodeURIComponent(ticket)}`);
   } catch (error) {
-    showError(error.message || '登录票据已失效，请重新登录');
+    showError(describeError(error && error.message ? error : '登录票据已失效，请重新登录'));
     return;
   }
 
@@ -119,7 +120,7 @@ export async function renderExternalComplete(app, api, navigate) {
       captcha.destroy();
       await acceptHandoff(api, navigate, completed.handoff_ticket);
     } catch (error) {
-      showError(error.message || '创建账号失败，请重试');
+      showError(describeError(error && error.message ? error : '创建账号失败，请重试'));
       await captcha.refreshAfterFailure();
     } finally {
       setLoading(submit, false);

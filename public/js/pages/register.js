@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { encryptPassword, generateNonce, getFingerprint, showError, hideMessages, setLoading } from '../utils.js';
+import { describeError } from '../auth-errors.js';
 import { createHCaptcha } from '../hcaptcha.js';
 
 export function renderRegister(app, api, navigate) {
@@ -112,7 +113,7 @@ export function renderRegister(app, api, navigate) {
         navigate(params.get('redirect') || '/');
       }
     } catch (error) {
-      showError(error.message || '注册失败，请重试');
+      showError(describeError(error && error.message ? error : '注册失败，请重试'));
       await captcha.refreshAfterFailure();
     } finally {
       setLoading(registerBtn, false);
